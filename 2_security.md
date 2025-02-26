@@ -113,7 +113,7 @@ app.get("/admin", authorize(["admin"]), (req, res) => {
 
 ## 6- Can JWTs be used for stateful authentication? Why or why not?
 
-- **Stateless:** jWTs are stateless by design, The server does not store session data. The client sends JWT with each request,  meaning no session is stored on the server..
+- **Stateless:** jWTs are stateless by design, The server does not store session data. The client sends JWT with each request, meaning no session is stored on the server..
 - **Stateful:** Store JWTs in a database and check their validity before processing requests (**A token blacklist or database tracking system can make JWTs behave statefully**).
 
 ### **When to Use Stateful JWTs?**
@@ -173,6 +173,122 @@ Example JWE:
   "sessionId": "a1b2c3d4"
 }
 ```
+
+## 9- How do you implement JWT revocation in a stateless system?
+
+Since JWTs are stateless, revocation is challenging. Possible solutions:
+
+- **Blacklist Approach:** Maintain a database of revoked tokens and check on every request.
+- **Short-Lived Tokens:** Use short expiration times and refresh tokens.
+- **Token Versioning:** Store a version number in the JWT payload and check it against the database.
+- Use a **blocklist stored in Redis** for real-time revocation.
+
+Example Blacklist:
+
+```js
+const revokedTokens = new Set();
+app.post("/logout", (req, res) => {
+  revokedTokens.add(req.cookies.token);
+  res.send("Logged out");
+});
+```
+
+## 10- What is token poisoning in JWTs, and how can you prevent it?
+
+Token poisoning occurs when an attacker modifies or misuses JWT's payload.
+
+- **Prevention:** Always validate the signature before processing JWTs.
+- **Example Validation:**
+  ```js
+  try {
+    const decoded = jwt.verify(token, secretKey);
+  } catch (err) {
+    return res.status(401).send("Invalid token");
+  }
+  ```
+- Use **RS256 (asymmetric keys)** instead of HS256 (shared secret).
+- Always verify iss, aud, and exp claims.
+- Never store JWTs in **localStorage** (use HTTP-only, Secure cookies).
+- Implement **rate limiting** to detect token replay attacks.
+
+## 10- How does key rotation work with JWTs, and why is it important?
+
+Key rotation ensures compromised keys don’t cause long-term damage.
+
+- **Use `kid` field** to track multiple keys.
+- **Revoke old tokens when rotating keys.** : key rotation means periodically changing the signing key to reduce exposure in case of compromise.
+- Use **JWKS (JSON Web Key Set)** for automatic key rotation.
+- Include a kid (Key ID) in JWT headers to identify the correct key.
+
+Example JWT header:
+
+```json
+{
+  "alg": "RS256",
+  "typ": "JWT",
+  "kid": "key123"
+}
+```
+
+Example Key Rotation Handling:
+
+```js
+const keys = {
+  oldKeyId: "oldSecret",
+  newKeyId: "newSecret",
+};
+const tokenHeader = JSON.parse(
+  Buffer.from(token.split(".")[0], "base64").toString()
+);
+const secret = keys[tokenHeader.kid];
+jwt.verify(token, secret);
+```
+
+## 11- Can a JWT be used across multiple domains? How do you handle CORS issues?
+
+- Yes, JWTs are self-contained, so they can be used across multiple domains.
+- **CORS-related solutions:**
+  - Use CORS headers (Access-Control-Allow-Origin) to specify allowed domains.
+  - Store JWTs in Secure, HTTP-only cookies with the SameSite=None attribute.
+  - Implement token forwarding via a central authentication service.
+
+When using JWTs across multiple domains:
+
+- **Enable CORS properly:**
+  ```js
+  app.use(
+    cors({
+      origin: "https://trusted-domain.com",
+      credentials: true,
+    })
+  );
+  ```
+- **Set proper cookie attributes:**
+  ```js
+  res.cookie("token", jwtToken, { sameSite: "None", secure: true });
+  ```
+
+## 12- What are some alternatives to JWTs for authentication?
+
+- **Session-based Authentication** (using Redis or DB)
+- **OAuth 2.0** (Token-based delegation) , session cookies (stateful authentication).
+- **SAML (Security Assertion Markup Language)** (XML-based authentication) for enterprise SSO.
+- **Paseto (Platform-Agnostic Security Tokens)** as a JWT alternative.
+- **Opaque tokens** (server-verified tokens, better for security-sensitive applications).
+
+## 13- How do you prevent brute force attacks on JWTs?
+
+- **Use Strong Signing Keys**
+- **Rate Limit Authentication Endpoints**
+  ```js
+  const rateLimit = require("express-rate-limit");
+  app.use("/login", rateLimit({ windowMs: 15 * 60 * 1000, max: 5 }));
+  ```
+- **Monitor Unusual Login Attempts**
+- Use **strong secret keys** (256-bit or higher for HMAC, RSA keys for RS256).
+- Implement **rate limiting** on authentication endpoints.
+- Enforce **account lockouts** after multiple failed login attempts.
+- Use **refresh tokens** instead of long-lived access tokens.
 
 ---
 
