@@ -29,6 +29,30 @@ Client       <-   Receives New Access Token
 - Risk: **Expired Token Replay →** Mitigation: Implement short expiration times and refresh tokens.
 - Risk: **Algorithm Tampering →** Mitigation: Only allow secure algorithms like RS256.
 
+**What happens if an attacker steals a JWT? How do you mitigate the risk?**
+If a JWT is stolen, the attacker can impersonate a user until it expires.
+
+**Mitigation Strategies:**
+
+1. **Use HTTPS** to encrypt token transmission.
+2. **Store JWTs securely** (HTTP-only cookies instead of localStorage).
+3. **Implement token revocation** (Blacklist strategy or refresh token rotation).
+4. **Monitor anomalies** (Detect multiple logins from different locations).
+5. Use short-lived access tokens with refresh tokens.
+6. Implement **IP/device binding** for token validation.
+7. Use **token hashing** before storing them in the database.
+
+**Example: Revoke Tokens in Redis (Node.js)**
+
+```js
+const revokedTokens = new Set();
+app.post("/logout", (req, res) => {
+  revokedTokens.add(req.cookies.token);
+  res.send("Logged out");
+});
+```
+
+
 #### 3- Can a JWT be revoked? If so, how?
 
 Yes, JWTs Can Be Revoked Using(JWTs are stateless and cannot be revoked once issued. However, revocation can be handled by):

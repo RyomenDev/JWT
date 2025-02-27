@@ -56,8 +56,9 @@
 
 ## 4- What is the role of the kid (Key ID) in JWT headers?
 
-- The `kid` parameter in the header helps in identifying the correct signing key when verifying JWTs.
-- The kid (Key ID) helps identify which key was used to sign the JWT.
+- The `kid` parameter in the header helps in identifying the correct signing key when verifying JWTs (when using multiple signing keys).
+- The server retrieves the correct key from a **JWKS (JSON Web Key Set)** and verifies the signature.
+- This allows **key rotation** without breaking existing JWTs.
 - Useful when rotating signing keys in production environments.
 - The authentication server looks up the corresponding key using kid.
 
