@@ -1,6 +1,6 @@
 # Advanced JWT Interview Questions for Deep Technical Discussions
 
-## Security & Threats
+# <u>Security & Threats</u>
 
 ### 1. What are JWT kid (Key ID) headers, and how do they improve security?
 
